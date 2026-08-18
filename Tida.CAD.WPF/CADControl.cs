@@ -30,16 +30,24 @@ public partial class CADControl : Grid, ICADControl {
 
     public CADControl() {
         this.Children.Add(VisualContainer);
-        VisualContainer.AddVisual(_dragSelectionContainerVisual);
+        VisualContainer.AddVisual(_dragSelectionDrawingVisual);
         this.Focusable = true;
-        
+
         RefreshPanPen();
         RefreshGridsPen();
     }
-    
+
     protected readonly VisualContainer VisualContainer = new VisualContainer();
-    private readonly Dictionary<CADLayer, ContainerVisual> _layerContainerVisualDict = new Dictionary<CADLayer, ContainerVisual>();
-    private readonly ContainerVisual _dragSelectionContainerVisual = new ContainerVisual();
+
+    /// <summary>
+    /// 图层与该图层唯一的<see cref="DrawingVisual"/>(图层背景与所有绘制对象均录制于其上);
+    /// </summary>
+    private readonly Dictionary<CADLayer, DrawingVisual> _layerVisualDict = new Dictionary<CADLayer, DrawingVisual>();
+
+    /// <summary>
+    /// 拖放选择矩形所使用的<see cref="DrawingVisual"/>(位于所有图层之上);
+    /// </summary>
+    private readonly DrawingVisual _dragSelectionDrawingVisual = new DrawingVisual();
     
     /// <summary>
     /// <see cref="ICanvas"/> implemented with WPF;
@@ -62,9 +70,10 @@ public partial class CADControl : Grid, ICADControl {
     private Point _lastPanOffsetBeforeDragging;
 
     /// <summary>
-    /// 可绘制对象与WPF DrawingVisual缓存;
+    /// 可绘制对象与其绘制内容(<see cref="DrawingGroup"/>)的缓存;
+    /// 内容为当前视图下的屏幕坐标,缩放/平移后失效,需重建;
     /// </summary>
-    private readonly Dictionary<IDrawable, DrawingVisual> _visualDict = new Dictionary<IDrawable, DrawingVisual>();
+    private readonly Dictionary<IDrawable, DrawingGroup> _drawingCache = new Dictionary<IDrawable, DrawingGroup>();
 
     /// <summary>
     /// 当前被悬停的绘制对象集合;
@@ -137,7 +146,7 @@ public partial class CADControl : Grid, ICADControl {
     /// <param name="drawingContext"></param>
     protected override void OnRender(DrawingContext drawingContext) {
         base.OnRender(drawingContext);
-        
+
         //绘制背景;
         //DrawBackground(drawingContext);
         //绘制网格;
@@ -155,13 +164,25 @@ public partial class CADControl : Grid, ICADControl {
         DrawPan(drawingContext,clipGeometry);
 
         AddSelectRectangleToDict();
-        /*重绘元素*/
+        /*重绘元素:缩放/平移后所有缓存内容均已失效,需全部重建*/
 
-      
-        foreach (var pair in _visualDict) {
-            pair.Value.Clip = clipGeometry;
-            DrawDrawableCore(pair.Key, pair.Value);
+        foreach (var CADLayer in _CADLayers) {
+            RebuildDrawingCache(CADLayer);
+            foreach (var drawObject in CADLayer.DrawObjects) {
+                RebuildDrawingCache(drawObject);
+            }
         }
+        RebuildDrawingCache(_dragSelectRectangle);
+
+        foreach (var layerVisual in _layerVisualDict.Values) {
+            layerVisual.Clip = clipGeometry;
+        }
+        _dragSelectionDrawingVisual.Clip = clipGeometry;
+
+        foreach (var CADLayer in _CADLayers) {
+            RenderLayerVisual(CADLayer);
+        }
+        RenderDragSelectionVisual();
     }
     
     protected override Size ArrangeOverride(Size arrangeSize) {
@@ -1164,17 +1185,22 @@ public partial class CADControl
     /// <param name="CADLayer"></param>
     private void SetupLayer(CADLayer CADLayer)
     {
-        if (_layerContainerVisualDict.ContainsKey(CADLayer))
+        if (_layerVisualDict.ContainsKey(CADLayer))
         {
             return;
         }
-        var layerContainerVisual = new ContainerVisual();
-        _layerContainerVisualDict.Add(CADLayer, layerContainerVisual);
-        VisualContainer.InsertVisual(_layerContainerVisualDict.Count - 1, layerContainerVisual);
-        AddDrawable(CADLayer,layerContainerVisual);
+
+        var layerVisual = new DrawingVisual();
+        _layerVisualDict.Add(CADLayer, layerVisual);
+        VisualContainer.InsertVisual(_layerVisualDict.Count - 1, layerVisual);
+
+        //图层自身内容(背景等)变化时,重建缓存并重新录制本图层;
+        CADLayer.VisualChanged += Drawable_VisualChanged;
+        RebuildDrawingCache(CADLayer);
+
         AddDrawObjects(CADLayer.DrawObjects,CADLayer);
-      
-        //图层内绘制对象增减清除时,延长/缩减/清除绘制对象的缓冲池;
+
+        //图层内绘制对象增减清除时,延长/缩减/清除绘制对象的缓存;
         CADLayer.DrawObjectsAdded += CADLayer_DrawObjectsAdded;
         CADLayer.DrawObjectsRemoved += CADLayer_DrawObjectsRemoved;
         CADLayer.DrawObjectsClearing += CADLayer_DrawObjectClearing;
@@ -1183,9 +1209,9 @@ public partial class CADControl
         CADLayer.IsVisibleChanged += CADLayer_IsVisibleChanged;
 
         _CADLayers.Add(CADLayer);
-        
+
     }
-    
+
     /// <summary>
     /// 卸载图层;
     /// </summary>
@@ -1197,14 +1223,19 @@ public partial class CADControl
             return;
         }
 
-        if (_layerContainerVisualDict.TryGetValue(CADLayer,out var layerContaienrVisual))
+        if (!_layerVisualDict.TryGetValue(CADLayer,out var layerVisual))
         {
             return;
         }
-        
-        RemoveDrawable(CADLayer,layerContaienrVisual);
+
+        //移除图层Visual,缓存及事件;
+        VisualContainer.RemoveVisual(layerVisual);
+        _layerVisualDict.Remove(CADLayer);
+        _drawingCache.Remove(CADLayer);
+        CADLayer.VisualChanged -= Drawable_VisualChanged;
+
         //卸载该图层内所有绘制对象;
-        RemoveAllVisualsOfLayer(CADLayer);
+        RemoveDrawObjectsOfLayer(CADLayer);
 
         CADLayer.DrawObjectsAdded -= CADLayer_DrawObjectsAdded;
         CADLayer.DrawObjectsRemoved -= CADLayer_DrawObjectsRemoved;
@@ -1244,7 +1275,7 @@ public partial class CADControl
             return;
         }
 
-        RemoveAllVisualsOfLayer(layer);
+        RemoveDrawObjectsOfLayer(layer);
     }
 
 
@@ -1260,17 +1291,26 @@ public partial class CADControl
         {
             return;
         }
-        if (!_layerContainerVisualDict.TryGetValue(CADLayer, out var containerVisual))
+        if (!_layerVisualDict.ContainsKey(CADLayer))
         {
             return;
         }
 
         foreach (var drawObject in drawObjects) {
-            AddDrawable(drawObject,containerVisual);
+            //已缓存的元素不重复订阅/录制;
+            if (_drawingCache.ContainsKey(drawObject)) {
+                continue;
+            }
+
+            drawObject.VisualChanged += Drawable_VisualChanged;
+            RebuildDrawingCache(drawObject);
 
             drawObject.IsVisibleChanged += DrawObject_IsVisibleChanged;
             drawObject.IsSelectedChanged += DrawObject_IsSelectedChanged;
         }
+
+        //重新录制本图层Visual(回放缓存);
+        RenderLayerVisual(CADLayer);
 
         DrawObjectsAdded?.Invoke(this, new DrawObjectsAddedEventArgs(drawObjects));
     }
@@ -1282,7 +1322,7 @@ public partial class CADControl
     /// <param name="drawObject"></param>
     private void RemoveDrawObjects(IEnumerable<DrawObject> drawObjects, CADLayer CADLayer)
     {
-        if(drawObjects == null) 
+        if(drawObjects == null)
         {
             return;
         }
@@ -1290,17 +1330,25 @@ public partial class CADControl
         {
             return;
         }
-        if (!_layerContainerVisualDict.TryGetValue(CADLayer,out var containerVisual))
+        if (!_layerVisualDict.ContainsKey(CADLayer))
         {
             return;
         }
 
         foreach (var drawObject in drawObjects) {
-            RemoveDrawable(drawObject, containerVisual);
+            if (!_drawingCache.ContainsKey(drawObject)) {
+                continue;
+            }
+
+            drawObject.VisualChanged -= Drawable_VisualChanged;
+            _drawingCache.Remove(drawObject);
 
             drawObject.IsVisibleChanged -= DrawObject_IsVisibleChanged;
             drawObject.IsSelectedChanged -= DrawObject_IsSelectedChanged;
         }
+
+        //重新录制本图层Visual(回放缓存);
+        RenderLayerVisual(CADLayer);
 
         DrawObjectsRemoved?.Invoke(this, new DrawObjectsRemovedEventArgs(drawObjects));
     }
@@ -1357,44 +1405,73 @@ public partial class CADControl
     }
 
     /// <summary>
-    /// Add a drawble object to cache <see cref="_visualDict"/> and visual tree;
+    /// 将可绘制对象的内容录制为<see cref="DrawingGroup"/>并存入<see cref="_drawingCache"/>;
+    /// 内容为当前视图下的屏幕坐标;
     /// </summary>
-    /// <param name="drawable"></param>
-    private void AddDrawable(IDrawable drawable,ContainerVisual containerVisual)
+    /// <param name="drawable">可绘制对象</param>
+    private void RebuildDrawingCache(IDrawable drawable)
     {
-        if (_visualDict.ContainsKey(drawable))
-        {
-            return;
-        }
-        
-        var drawingVisual = new DrawingVisual
-        {
-            Clip = new RectangleGeometry(new Rect
-            {
-                Width = ActualWidth,
-                Height = ActualHeight
-            })
-        };
+        var drawingGroup = new DrawingGroup();
 
-        _visualDict.Add(drawable, drawingVisual);
-        containerVisual.Children.Add(drawingVisual);
-        drawable.VisualChanged += Drawable_VisualChanged;
-        DrawDrawable(drawable);
+        //不可见元素录制为空内容;
+        if (drawable is not CADElement canvasElement || canvasElement.IsVisible)
+        {
+            var dc = drawingGroup.Open();
+            InternalCanvas.InernalDrawingContext = dc;
+            drawable.Draw(InternalCanvas);
+            dc.Close();
+            InternalCanvas.InernalDrawingContext = null;
+        }
+
+        drawingGroup.Freeze();
+        _drawingCache[drawable] = drawingGroup;
     }
 
     /// <summary>
-    /// remove a drawable object from cache and visual tree;
+    /// 重新录制某个图层的<see cref="DrawingVisual"/>:
+    /// 依次回放图层背景及图层内所有绘制对象的缓存;
     /// </summary>
-    /// <param name="drawable"></param>
-    private void RemoveDrawable(IDrawable drawable,ContainerVisual? containerVisual)
+    /// <param name="CADLayer">目标图层</param>
+    private void RenderLayerVisual(CADLayer CADLayer)
     {
-        if (!_visualDict.TryGetValue(drawable,out var drawingVisual))
+        if (!_layerVisualDict.TryGetValue(CADLayer, out var layerVisual))
         {
             return;
         }
-        _visualDict.Remove(drawable);
-        containerVisual?.Children?.Remove(drawingVisual);
-        drawable.VisualChanged -= Drawable_VisualChanged;
+
+        var dc = layerVisual.RenderOpen();
+
+        //图层不可见时,录制为空内容;
+        if (CADLayer.IsVisible)
+        {
+            if (_drawingCache.TryGetValue(CADLayer, out var layerDrawingGroup))
+            {
+                dc.DrawDrawing(layerDrawingGroup);
+            }
+
+            foreach (var drawObject in CADLayer.DrawObjects)
+            {
+                if (_drawingCache.TryGetValue(drawObject, out var drawingGroup))
+                {
+                    dc.DrawDrawing(drawingGroup);
+                }
+            }
+        }
+
+        dc.Close();
+    }
+
+    /// <summary>
+    /// 重新录制拖放选择矩形所使用的<see cref="DrawingVisual"/>;
+    /// </summary>
+    private void RenderDragSelectionVisual()
+    {
+        var dc = _dragSelectionDrawingVisual.RenderOpen();
+        if (_drawingCache.TryGetValue(_dragSelectRectangle, out var drawingGroup))
+        {
+            dc.DrawDrawing(drawingGroup);
+        }
+        dc.Close();
     }
 
 
@@ -1402,56 +1479,47 @@ public partial class CADControl
     /// 绘制对象;
     /// </summary>
     /// <param name="drawable">负责绘制逻辑的单元</param>
-    /// <remarks>该对象必须</remarks>
+    /// <remarks>该对象必须已被缓存</remarks>
     private void DrawDrawable(IDrawable drawable)
     {
-        if (!_visualDict.ContainsKey(drawable))
+        if (!_drawingCache.ContainsKey(drawable))
         {
             return;
         }
 
-        var drawingVisual = _visualDict[drawable];
-        DrawDrawableCore(drawable, drawingVisual);
-    }
+        RebuildDrawingCache(drawable);
 
-
-    /// <summary>
-    /// 绘制可绘制对象核心;
-    /// </summary>
-    /// <param name="drawable">可绘制对象</param>
-    /// <param name="drawingVisual">对应的WPF-DrawingVisual</param>
-    private void DrawDrawableCore(IDrawable drawable, DrawingVisual drawingVisual)
-    {
-        if (drawable is CADElement canvasElement && !canvasElement.IsVisible)
+        //图层自身内容变化时,重录该图层;
+        if (drawable is CADLayer cadLayer)
         {
+            RenderLayerVisual(cadLayer);
             return;
         }
 
-        var dc = drawingVisual.RenderOpen();
-        InternalCanvas.InernalDrawingContext = dc;
-        drawable.Draw(InternalCanvas);
-        dc.Close();
-        InternalCanvas.InernalDrawingContext = null;
+        //绘制对象内容变化时,重录其所属图层;
+        if (drawable is DrawObject drawObject && drawObject.Layer != null && _layerVisualDict.ContainsKey(drawObject.Layer))
+        {
+            RenderLayerVisual(drawObject.Layer);
+            return;
+        }
+
+        //其余(拖放选择矩形)重录拖放Visual;
+        RenderDragSelectionVisual();
     }
 
-    
+
     /// <summary>
-    /// 移除来自对应图层内的所有绘制元素;
+    /// 移除来自对应图层内的所有绘制元素缓存;
     /// </summary>
     /// <param name="CADLayer"></param>
-    private void RemoveAllVisualsOfLayer(CADLayer CADLayer)
+    private void RemoveDrawObjectsOfLayer(CADLayer CADLayer)
     {
-        //遍历缓存中所有的Visual,移除该图层内的所有元素;
-        var removeVisualPairs = _visualDict.Where(p =>
-        {
-            if (p.Key is not DrawObject drawObject)
-            {
-                return false;
-            }
-            return drawObject.Layer == CADLayer;
-        });
+        //遍历缓存中所有的元素,移除该图层内的所有元素;
+        var removeDrawObjects = _drawingCache.Keys.OfType<DrawObject>().Where(
+            p => p.Layer == CADLayer
+        ).ToList();
 
-        RemoveDrawObjects(removeVisualPairs.Select(p => p.Key).OfType<DrawObject>().ToList(),CADLayer);
+        RemoveDrawObjects(removeDrawObjects,CADLayer);
     }
 
     /// <summary>
@@ -1465,21 +1533,13 @@ public partial class CADControl
         {
             return;
         }
-        if(!_layerContainerVisualDict.TryGetValue(CADLayer,out var layerContainerVisual))
+        if(!_layerVisualDict.ContainsKey(CADLayer))
         {
             return;
         }
 
-        //若可见,则加入来自该图层内的所有元素;
-        if (CADLayer.IsVisible)
-        {
-            AddDrawObjects(CADLayer.DrawObjects, CADLayer);
-        }
-        //若不可见,则移除制来自该图层内的所有元素;
-        else
-        {
-            RemoveDrawObjects(CADLayer.DrawObjects, CADLayer);
-        }
+        //图层整体录制为一个Visual,可见状态变化时重录为空/完整内容即可;
+        RenderLayerVisual(CADLayer);
 
     }
 
@@ -1495,7 +1555,7 @@ public partial class CADControl
             return;
         }
 
-        if (!_visualDict.ContainsKey(drawable))
+        if (!_drawingCache.ContainsKey(drawable))
         {
             return;
         }
@@ -1762,12 +1822,12 @@ public partial class CADControl
         DependencyProperty.Register(nameof(IsDragSelectEnabled), typeof(bool), typeof(CADControl), new PropertyMetadata(true));
 
     /// <summary>
-    /// Add selected rectangle to <see cref="_visualDict"/>;
+    /// 确保拖放选择矩形已缓存并已录制;
     /// </summary>
     private void AddSelectRectangleToDict() {
-        if (!_visualDict.ContainsKey(_dragSelectRectangle)) {
-            //Add highlighted rect to visual tree;
-            AddDrawable(_dragSelectRectangle,_dragSelectionContainerVisual);
+        if (!_drawingCache.ContainsKey(_dragSelectRectangle)) {
+            RebuildDrawingCache(_dragSelectRectangle);
+            RenderDragSelectionVisual();
         }
     }
 
@@ -1851,8 +1911,9 @@ public partial class CADControl
             return false;
         }
 
-        //将高亮矩形加入到视觉树中;
-        AddDrawable(_dragSelectRectangle,_dragSelectionContainerVisual);
+        //将高亮矩形录制至拖放Visual;
+        RebuildDrawingCache(_dragSelectRectangle);
+        RenderDragSelectionVisual();
 
         //若矩形两对角点的横坐标或纵坐标相等,则无法组成矩形,无法绘制矩形;
         if (_lastMouseDownPositionForDragSelecting.Value.X == mousePosition.X
