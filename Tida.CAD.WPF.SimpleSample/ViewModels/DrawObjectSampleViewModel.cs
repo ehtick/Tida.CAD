@@ -1,46 +1,50 @@
-﻿using Avalonia;
-using Avalonia.Collections;
-using Avalonia.Media;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using Tida.CAD;
 using Tida.CAD.DrawObjects;
 
-namespace Tida.CAD.Avalonia.SimpleSample.ViewModels;
+namespace Tida.CAD.WPF.SimpleSample.ViewModels;
 
-internal class DrawObjectDemoWindowViewModel : BindableBase
+/// <summary>
+/// 绘制对象示例窗口的视图模型;
+/// </summary>
+public class DrawObjectSampleViewModel : BindableBase
 {
-    public DrawObjectDemoWindowViewModel()
+    public DrawObjectSampleViewModel()
     {
-        _layer = new CADLayer();
-        Layers.Add(_layer);
+        Layer = new CADLayer();
+        Layers = new CADLayer[] { Layer };
     }
-    public AvaloniaList<CADLayer> Layers { get; } = [];
-    private readonly CADLayer _layer;
+
+    /// <summary>
+    /// 当前图层;
+    /// </summary>
+    public CADLayer Layer { get; }
+
+    /// <summary>
+    /// 绑定至画布控件的图层集合;
+    /// </summary>
+    public CADLayer[] Layers { get; }
 
     private RelayCommand? _addLineCommand;
-    public RelayCommand AddLineCommand => _addLineCommand ??= new RelayCommand(Addline);
-    private void Addline()
+    public ICommand AddLineCommand => _addLineCommand ??= new RelayCommand(AddLine);
+    private void AddLine()
     {
-        var line = new Line
-        {
-            Start = new Point(0, 0),
-            End = new Point(10, 10),
-            Pen = new Pen { Thickness = 2, Brush = Brushes.White }
-        };
-        _layer.AddDrawObject(line);
+        var line = new Line { Start = new Point(0, 0), End = new Point(10, 10) };
+        line.Pen = new Pen { Thickness = 2, Brush = Brushes.White };
+        Layer.AddDrawObject(line);
     }
 
-
     private RelayCommand? _addRectCommand;
-    public RelayCommand AddRectCommand => _addRectCommand ??= new RelayCommand(AddRect);
+    public ICommand AddRectCommand => _addRectCommand ??= new RelayCommand(AddRect);
     private void AddRect()
     {
         var rectPen = new Pen(Brushes.White, 2);
         var rectBackground = Brushes.Orange;
+        rectPen.Freeze();
 
         var rect = new Rectangle(new CADRect(new Point(-2, -2), new Size(4, 4)))
         {
@@ -49,33 +53,32 @@ internal class DrawObjectDemoWindowViewModel : BindableBase
             Background = rectBackground
         };
 
-        _layer.AddDrawObject(rect);
+        Layer.AddDrawObject(rect);
     }
 
     private RelayCommand? _clearCommand;
-    public RelayCommand ClearCommand => _clearCommand ??= new RelayCommand(Clear);
+    public ICommand ClearCommand => _clearCommand ??= new RelayCommand(Clear);
     private void Clear()
     {
-        _layer.Clear();
+        Layer.Clear();
     }
 
     private RelayCommand? _changeLayerBackgroundCommand;
-    public RelayCommand ChangeLayerBackgroundCommand => _changeLayerBackgroundCommand ??= new RelayCommand(ChangeLayerBackground);
+    public ICommand ChangeLayerBackgroundCommand => _changeLayerBackgroundCommand ??= new RelayCommand(ChangeLayerBackground);
     private void ChangeLayerBackground()
     {
-        if (_layer.Background == null)
+        if (Layer.Background == null)
         {
-            _layer.Background = Brushes.Blue;
+            Layer.Background = Brushes.Blue;
         }
         else
         {
-            _layer.Background = null;
+            Layer.Background = null;
         }
     }
 
-
     private RelayCommand? _addPolygonCommand;
-    public RelayCommand AddPolygonCommand => _addPolygonCommand ??= new RelayCommand(AddPolygon);
+    public ICommand AddPolygonCommand => _addPolygonCommand ??= new RelayCommand(AddPolygon);
     private void AddPolygon()
     {
         var polygon = new Polygon
@@ -92,17 +95,17 @@ internal class DrawObjectDemoWindowViewModel : BindableBase
                 new Point(0,2),
                 new Point(2,0)
             },
-            Pen = new Pen(Brushes.White, 2),
+            Pen = new Pen(Brushes.White,2),
             Brush = null
         };
-        _layer.AddDrawObject(polygon);
+        Layer.AddDrawObject(polygon);
     }
 
     private RelayCommand? _addArcCommand;
-    public RelayCommand AddArcCommand => _addArcCommand ??= new RelayCommand(AddArc);
+    public ICommand AddArcCommand => _addArcCommand ??= new RelayCommand(AddArc);
     private void AddArc()
     {
-        _layer.AddDrawObject
+        Layer.AddDrawObject
         (
             new Arc
             {
@@ -120,9 +123,8 @@ internal class DrawObjectDemoWindowViewModel : BindableBase
         return v / 180 * Math.PI;
     }
 
-
     private RelayCommand? _addTextCommand;
-    public RelayCommand AddTextCommand => _addTextCommand ??= new RelayCommand(AddText);
+    public ICommand AddTextCommand => _addTextCommand ??= new RelayCommand(AddText);
     private void AddText()
     {
         var text = new Text
@@ -131,11 +133,11 @@ internal class DrawObjectDemoWindowViewModel : BindableBase
             Position = new Point(0, 0),
             FontSize = 14
         };
-        _layer.AddDrawObject(text);
+        Layer.AddDrawObject(text);
     }
 
     private RelayCommand? _addBatchCommand;
-    public RelayCommand AddBatchCommand => _addBatchCommand ??= new RelayCommand(AddBatch);
+    public ICommand AddBatchCommand => _addBatchCommand ??= new RelayCommand(AddBatch);
 
     /// <summary>
     /// 当前批次索引,每点击一次递增,使各批次图形在横向上隔开显示;
@@ -169,6 +171,7 @@ internal class DrawObjectDemoWindowViewModel : BindableBase
                 var cellOrigin = new Point(batchOffsetX + col * cellSize, row * cellSize);
                 var brush = brushes[random.Next(brushes.Length)];
                 var pen = new Pen(brush, 0.5);
+                pen.Freeze();
 
                 switch ((col + row) % 5)
                 {
@@ -226,7 +229,7 @@ internal class DrawObjectDemoWindowViewModel : BindableBase
         }
 
         //批量添加,只触发一次图层重录;
-        _layer.AddDrawObjects(drawObjects);
+        Layer.AddDrawObjects(drawObjects);
         _batchIndex++;
     }
 }

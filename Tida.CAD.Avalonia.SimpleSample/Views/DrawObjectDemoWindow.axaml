@@ -17,6 +17,7 @@
 			<Button Command="{Binding AddPolygonCommand}">Add Polygon</Button>
 			<Button Command="{Binding AddArcCommand}">Add Arc</Button>
 			<Button Command="{Binding AddTextCommand}">Add Text</Button>
+			<Button Command="{Binding AddBatchCommand}">Add Batch (200)</Button>
 		</UniformGrid>
 		<tidacad:CADControl Layers="{Binding Layers}"/>
 	</DockPanel>

@@ -1,22 +1,26 @@
-﻿<Window x:Class="Tida.CAD.WPF.SimpleSample.Views.DrawObjectSample"
+<Window x:Class="Tida.CAD.WPF.SimpleSample.Views.DrawObjectSample"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Tida.CAD.WPF.SimpleSample.ViewModels"
         xmlns:tidacad="https://github.com/Tida.CAD"
         mc:Ignorable="d"
         Title="DrawObjectSample" Height="450" Width="800">
+    <Window.DataContext>
+        <vm:DrawObjectSampleViewModel/>
+    </Window.DataContext>
     <DockPanel>
         <UniformGrid DockPanel.Dock="Bottom">
-            <Button Click="Addline_Click">Add Line</Button>
-            <Button Click="AddRect_Click">Add Rect</Button>
-            <Button Click="ChangeLayerBackground_Click">Change LayerBackground</Button>
-            <Button Click="Clear_Click">Clear</Button>
-            <Button Click="AddPolygon_Click">Add Polygon</Button>
-            <Button Click="AddArc_Click">Add Arc</Button>
-            <Button Click="AddText_Click">Add Text</Button>
-            <Button Click="AddBatch_Click">Add Batch (200)</Button>
+            <Button Command="{Binding AddLineCommand}">Add Line</Button>
+            <Button Command="{Binding AddRectCommand}">Add Rect</Button>
+            <Button Command="{Binding ChangeLayerBackgroundCommand}">Change LayerBackground</Button>
+            <Button Command="{Binding ClearCommand}">Clear</Button>
+            <Button Command="{Binding AddPolygonCommand}">Add Polygon</Button>
+            <Button Command="{Binding AddArcCommand}">Add Arc</Button>
+            <Button Command="{Binding AddTextCommand}">Add Text</Button>
+            <Button Command="{Binding AddBatchCommand}">Add Batch (200)</Button>
         </UniformGrid>
-        <tidacad:CADControl x:Name="cadControl"/>
+        <tidacad:CADControl Layers="{Binding Layers}"/>
     </DockPanel>
 </Window>

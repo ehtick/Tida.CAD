@@ -1,14 +1,28 @@
-﻿<Window x:Class="Tida.CAD.WPF.SimpleSample.MainWindow"
+<Window x:Class="Tida.CAD.WPF.SimpleSample.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Tida.CAD.WPF.SimpleSample"
-        xmlns:tidacad="https://github.com/Tida.CAD"
+        xmlns:vm="clr-namespace:Tida.CAD.WPF.SimpleSample.ViewModels"
         mc:Ignorable="d"
         Title="Tida.CAD.WPF.SimpleSample" Height="450" Width="800">
-    <UniformGrid x:Name="uniformGrid">
-
-    </UniformGrid>
-    
+    <Window.DataContext>
+        <vm:MainWindowViewModel/>
+    </Window.DataContext>
+    <ItemsControl ItemsSource="{Binding TestCommands}">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <UniformGrid Columns="2"/>
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <Button Command="{Binding Command}" Margin="4">
+                    <Viewbox>
+                        <TextBlock Text="{Binding Name}"/>
+                    </Viewbox>
+                </Button>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
 </Window>
