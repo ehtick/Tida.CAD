@@ -1,0 +1,77 @@
+# 发布 NuGet 包 (Trusted Publishing, 无 API key)
+# 触发方式:
+#   1. 推送版本标签, 如 v0.1.0 (推荐)
+#   2. 手动触发 workflow_dispatch, 可指定版本号
+#
+# 前置配置(一次性):
+#   1. GitHub: Settings -> Secrets and variables -> Actions -> 新建 secret
+#      NUGET_USER = 你的 nuget.org 用户名 (不是邮箱)
+#   2. nuget.org: 登录后 -> 用户名菜单 -> Trusted Publishing -> Add policy
+#      Repository Owner: JanusTida
+#      Repository: Tida.CAD
+#      Workflow File: publish.yml   (只填文件名, 不要带路径)
+#      Environment: release
+#   3. (可选) GitHub: Settings -> Environments -> release -> 添加 required reviewers
+#
+# 注意: 首次发布新包时策略处于 7 天临时状态, 首次成功推送后永久生效。
+
+name: publish
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号(如 0.1.0), 留空则使用 csproj 中的 Version'
+        required: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # NuGet/login 换发临时 key 必需
+      contents: read
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # 解析版本: 手动输入 > 标签(去掉 v 前缀) > csproj 中的 Version
+      - name: 解析版本号
+        id: version
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "无效版本号: $VERSION"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: 打包
+        run: |
+          dotnet pack Tida.CAD.Avalonia/Tida.CAD.Avalonia.csproj \
+            -c Release \
+            -o artifacts \
+            -p:Version="${{ steps.version.outputs.version }}"
+
+      # 通过 OIDC 从 nuget.org 换取临时 key (约 1 小时有效, 自动过期)
+      - name: NuGet 登录 (OIDC)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: 推送 NuGet 包
+        run: |
+          dotnet nuget push artifacts/*.nupkg \
+            -s https://api.nuget.org/v3/index.json \
+            --api-key ${{ steps.login.outputs.NUGET_API_KEY }} \
+            --skip-duplicate \
+            -n 3 --timeout 300

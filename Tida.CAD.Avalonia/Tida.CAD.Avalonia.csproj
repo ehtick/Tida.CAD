@@ -4,6 +4,15 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
 	<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PackageId>Tida.CAD.Avalonia</PackageId>
+    <Version>0.1.0</Version>
+    <Company>JanusTida</Company>
+    <Copyright>@JanusTida 2021</Copyright>
+    <Authors>JanusTida</Authors>
+    <Description>This assembly is a cad control library implemented with Avalonia.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>CAD;Canvas;DrawObject;Avalonia</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<DefineConstants>$(DefineConstants)TRACE;Avalonia</DefineConstants>
@@ -13,9 +22,12 @@
 		<DefineConstants>$(DefineConstants)TRACE;Avalonia</DefineConstants>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<DebugType>none</DebugType>
+		<!-- 共享代码中部分成员缺少XML注释,文档生成时避免作为错误阻断打包 -->
+		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 	<Import Project="..\Tida.CAD\Tida.CAD.projitems" Label="Shared" />
 </Project>
