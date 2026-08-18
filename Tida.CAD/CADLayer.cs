@@ -95,7 +95,6 @@ public class CADLayer : CADElement {
     /// 移除绘制元素;
     /// </summary>
     /// <param name="drawObject"></param>
-    /// <param name="raiseRemoveEvent">是否触发移除事件</param>
     public void RemoveDrawObject(DrawObject drawObject) {
         RemoveDrawObjectCore(drawObject);
 

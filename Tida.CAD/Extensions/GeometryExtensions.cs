@@ -39,6 +39,10 @@ public static class GeometryExtensions
     /// <summary>
     /// Get the intersect point of two lines if it exists, return null when it doesn't exist;
     /// </summary>
+    /// <param name="point1"></param>
+    /// <param name="point2"></param>
+    /// <param name="point3"></param>
+    /// <param name="point4"></param>
     /// <param name="isSegement"></param>
     /// <param name="espilon"></param>
     /// <returns></returns>
@@ -76,7 +80,9 @@ public static class GeometryExtensions
     /// <summary>
     /// Get a point in a line (with a specified ratio);
     /// </summary>
-    /// <param name="parameter"></param>
+    /// <param name="start"></param>
+    /// <param name="end"></param>
+    /// <param name="ratio"></param>
     /// <returns></returns>
     public static Point Evaluate(Point start,Point end,double ratio)
     {

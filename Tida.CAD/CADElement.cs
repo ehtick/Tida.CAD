@@ -43,7 +43,7 @@ public abstract class CADElement : IDrawable {
 
     /// <summary>
     ///   When overridden in a derived class, participates in rendering operations that
-    //     are directly used by UI framework.
+    ///     are directly used by UI framework.
     /// </summary>
     /// <param name="canvas"></param>
     public virtual void Draw(ICanvas canvas) {

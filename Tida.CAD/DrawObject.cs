@@ -90,10 +90,9 @@ public abstract partial class DrawObject {
     /// <summary>
     /// The method invoked while mouse is moving;
     /// </summary>
-    /// <param name="canvas"></param>
-    /// <param name="point"></param>
+    /// <param name="e"></param>
     /// <remarks>This interaction are availabel only when <see cref="IsSelected"/> is True</remarks>
-    public void OnMouseMove(CADMouseEventArgs e) 
+    public void OnMouseMove(CADMouseEventArgs e)
     {
         PreviewMouseMove?.Invoke(this, e);
         if (e.Handled) {
@@ -108,7 +107,7 @@ public abstract partial class DrawObject {
     /// <summary>
     /// The method invoked while mouse is pressed;
     /// </summary>
-    /// <param name="canvas"></param>
+    /// <param name="e"></param>
     /// <remarks>This interaction are availabel only when <see cref="IsSelected"/> is True</remarks>
     public void OnMouseDown(CADMouseButtonEventArgs e) {
         PreviewMouseDown?.Invoke(this, e);
@@ -124,9 +123,7 @@ public abstract partial class DrawObject {
     /// <summary>
     /// The method invoked while the mouse is released;
     /// </summary>
-    /// <param name="canvas"></param>
-    /// <param name="point"></param>
-    /// <param name="snapShape"></param>
+    /// <param name="e"></param>
     /// <remarks>This interaction are availabel only when <see cref="IsSelected"/> is True</remarks>
     public void OnMouseUp(CADMouseButtonEventArgs e) {
         PreviewMouseUp?.Invoke(this, e);
@@ -141,9 +138,9 @@ public abstract partial class DrawObject {
     protected virtual void OnMouseUpCore(CADMouseButtonEventArgs e) { }
 
     /// <summary>
-    /// The method invoked while the mouse is released;
+    /// The method invoked while a key is pressed;
     /// </summary>
-    /// <param name="canvas"></param>
+    /// <param name="e"></param>
     /// <remarks>This interaction are availabel only when <see cref="IsSelected"/> is True</remarks>
     public void OnKeyDown(CADKeyEventArgs e) {
         PreviewKeyDown?.Invoke(this, e);

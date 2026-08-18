@@ -36,6 +36,8 @@ class AvaloniaCanvas : ICanvas
     /// Draw a line;
     /// </summary>
     /// <param name="pen"></param>
+    /// <param name="point0"></param>
+    /// <param name="point1"></param>
     public void DrawLine(Pen? pen, Point point0, Point point1)
     {
         if (pen == null)
@@ -99,11 +101,10 @@ class AvaloniaCanvas : ICanvas
     /// <summary>
     /// Create a <see cref="PathGeometry"/> from an arc;
     /// </summary>
-    /// <param name="center"></param>
+    /// <param name="startScreenPoint"></param>
+    /// <param name="endScreenPoint"></param>
     /// <param name="screenRadius"></param>
-    /// <param name="beginAngle"></param>
-    /// <param name="angle"></param>
-    /// <param name="smallAngle"></param>
+    /// <param name="sweepDirection"></param>
     /// <returns></returns>
     private static PathGeometry GetArcGeometry(Point startScreenPoint, Point endScreenPoint, double screenRadius, SweepDirection sweepDirection)
     {
@@ -150,9 +151,7 @@ class AvaloniaCanvas : ICanvas
     /// <summary>
     /// Draw a text;
     /// </summary>
-    /// <param name="text"></param>
-    /// <param name="emSize"></param>
-    /// <param name="foreground"></param>
+    /// <param name="formattedText"></param>
     /// <param name="origin"></param>
     public void DrawText(FormattedText formattedText, Point origin)
     {
@@ -252,6 +251,7 @@ class AvaloniaCanvas : ICanvas
     /// </summary>
     /// <param name="points">The points to create the region</param>
     /// <param name="brush">The brush to fill the region</param>
+    /// <param name="pen">The pen to decorate the border of the region</param>
     private void DrawFill(IEnumerable<Point> points, IBrush? brush, Pen? pen)
     {
 
@@ -321,6 +321,9 @@ class AvaloniaCanvas : ICanvas
     /// </summary>
     /// <param name="brush">The brush to fill the ellipse</param>
     /// <param name="pen">The pen to decorate the border of the ellipse</param>
+    /// <param name="center"></param>
+    /// <param name="radiusX"></param>
+    /// <param name="radiusY"></param>
     public void NativeDrawEllipse(IBrush? brush, Pen? pen, Point center, double radiusX, double radiusY)
     {
         DrawingContext.DrawEllipse(

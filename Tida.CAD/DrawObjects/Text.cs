@@ -477,6 +477,7 @@ public partial class Text : DrawObject
     /// <summary>
     /// Draw selected text state;
     /// </summary>
+    /// <param name="text"></param>
     /// <param name="canvas"></param>
     /// <param name="copyFmtdText"></param>
     /// <param name="fontSize"></param>
@@ -541,8 +542,9 @@ public partial class Text : DrawObject
     /// <summary>
     /// 绕着某点进行旋转;
     /// </summary>
-    /// <param name="point"></param>
-    /// <param name="line"></param>
+    /// <param name="param">待旋转的点</param>
+    /// <param name="point">旋转中心</param>
+    /// <param name="radian">旋转弧度</param>
     /// <returns></returns>
     private static Point RotateByPoint(Point param, Point point, double radian)
     {
@@ -604,7 +606,7 @@ public partial class Text : DrawObject
     /// 判断点是否在对象区域内;
     /// </summary>
     /// <param name="point">画布坐标系中的坐标</param>
-    /// <param name="canvasZoomConverter"></param>
+    /// <param name="cadScreenConverter"></param>
     /// <returns></returns>
     public override bool PointInObject(Point point, ICADScreenConverter cadScreenConverter)
     {

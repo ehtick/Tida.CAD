@@ -17,9 +17,8 @@ public interface ICanvas {
 
     /// <summary>
     ///  Draws a line between the specified points using the specified <see cref="Pen"/>
-    //     and applies the specified animation clocks.
+    ///     and applies the specified animation clocks.
     /// </summary>
-    /// <param name="canvas"></param>
     /// <param name="pen"></param>
     /// <param name="point0">The position of first </param>
     /// <param name="point1"></param>
@@ -49,6 +48,8 @@ public interface ICanvas {
     /// <param name="brush"></param>
     /// <param name="pen"></param>
     /// <param name="center"></param>
+    /// <param name="radiusX"></param>
+    /// <param name="radiusY"></param>
     void DrawEllipse(Brush? brush,Pen? pen, Point center,double radiusX,double radiusY);
 
     /// <summary>
