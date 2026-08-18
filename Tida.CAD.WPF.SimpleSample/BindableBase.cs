@@ -53,13 +53,16 @@ public abstract class BindableBase : INotifyPropertyChanged
     /// <param name="onChanged">Action that is called after the property value has been changed.</param>
     /// <returns>True if the value was changed, false if the existing value matched the
     /// desired value.</returns>
-    protected virtual bool SetProperty<T>(ref T storage, T value, Action onChanged, [CallerMemberName] string propertyName = null)
+    protected virtual bool SetProperty<T>(ref T storage, T value, Action onChanged, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(storage, value)) return false;
 
         storage = value;
         onChanged?.Invoke();
-        RaisePropertyChanged(propertyName);
+        if(propertyName != null)
+        {
+            RaisePropertyChanged(propertyName);
+        }
 
         return true;
     }
@@ -70,8 +73,12 @@ public abstract class BindableBase : INotifyPropertyChanged
     /// <param name="propertyName">Name of the property used to notify listeners. This
     /// value is optional and can be provided automatically when invoked from compilers
     /// that support <see cref="CallerMemberNameAttribute"/>.</param>
-    protected void RaisePropertyChanged([CallerMemberName] string propertyName = null)
+    protected void RaisePropertyChanged([CallerMemberName] string? propertyName = null)
     {
+        if(propertyName == null)
+        {
+            return;
+        }
         OnPropertyChanged(new PropertyChangedEventArgs(propertyName));
     }
 

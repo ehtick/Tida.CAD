@@ -1826,6 +1826,7 @@ public partial class CADControl
     /// </summary>
     private void AddSelectRectangleToDict() {
         if (!_drawingCache.ContainsKey(_dragSelectRectangle)) {
+            _dragSelectRectangle.VisualChanged += Drawable_VisualChanged;
             RebuildDrawingCache(_dragSelectRectangle);
             RenderDragSelectionVisual();
         }
@@ -1842,38 +1843,23 @@ public partial class CADControl
             return false;
         }
         var mousePosition = CADScreenConverter.ToCAD(e.GetPosition(this));
-        //若上次点击位置不为空,则进行拖放选中操作;
+        //若上次点击位置不为空,则进行拖放选中操作(按下即确认框选);
         if (_lastMouseDownPositionForDragSelecting != null)
         {
-            if (_dragSelectRectangle == null)
-            {
-                return false;
-            }
-
-            //若矩形两对角点的横坐标或纵坐标相等,则无法组成矩形,不能拖放选择;
-            if (_lastMouseDownPositionForDragSelecting.Value.X == mousePosition.X
-                || _lastMouseDownPositionForDragSelecting.Value.Y == mousePosition.Y)
-            {
-                return false;
-            }
-
             var rect = _dragSelectRectangle.Rectangle;
-            if (rect == null)
+            if (rect != null)
             {
-                return false;
-            }
-
-            //遍历选中所有在框选范围中的可见绘制对象;
-            var selectedObjects = this.GetVisibleLayers().SelectMany(p => p.DrawObjects).Where(p => p.IsVisible).
+                //遍历选中所有在框选范围中的可见绘制对象;
+                var selectedObjects = this.GetVisibleLayers().SelectMany(p => p.DrawObjects).Where(p => p.IsVisible).
                     Where(p => p.ObjectInRectangle(rect.Value, CADScreenConverter, _anyPointSelectForDragSelect)).ToArray();
 
-
-            foreach (var drawObject in selectedObjects)
-            {
-                drawObject.IsSelected = true;
+                foreach (var drawObject in selectedObjects)
+                {
+                    drawObject.IsSelected = true;
+                }
             }
 
-            //将选中矩形的数据置空;
+            //无论是否实际选中,均清除拖放选择状态与矩形,使框选框自动消失;
             _lastMouseDownPositionForDragSelecting = null;
             _dragSelectRectangle.Rectangle = null;
 
@@ -1910,10 +1896,6 @@ public partial class CADControl
         {
             return false;
         }
-
-        //将高亮矩形录制至拖放Visual;
-        RebuildDrawingCache(_dragSelectRectangle);
-        RenderDragSelectionVisual();
 
         //若矩形两对角点的横坐标或纵坐标相等,则无法组成矩形,无法绘制矩形;
         if (_lastMouseDownPositionForDragSelecting.Value.X == mousePosition.X

@@ -120,4 +120,98 @@ public partial class DrawObjectSample : Window
         };
         _cadLayer.AddDrawObject(text);
     }
+
+    /// <summary>
+    /// 当前批次索引,每点击一次递增,使各批次图形在横向上隔开显示;
+    /// </summary>
+    private int _batchIndex;
+
+    /// <summary>
+    /// 一次性生成大量绘制对象(200个),与上一批在横向上隔开;
+    /// </summary>
+    private void AddBatch_Click(object sender, RoutedEventArgs e)
+    {
+        const int columnCount = 20;
+        const int rowCount = 10;
+        const double cellSize = 3;
+        //每批图形占据一块区域,批次间互不重叠;
+        var batchOffsetX = _batchIndex * (columnCount * cellSize);
+
+        var random = new Random();
+        var brushes = new[]
+        {
+            Brushes.White, Brushes.Orange, Brushes.Yellow,
+            Brushes.Cyan, Brushes.LimeGreen, Brushes.DeepSkyBlue
+        };
+
+        var drawObjects = new List<DrawObject>();
+
+        for (var row = 0; row < rowCount; row++)
+        {
+            for (var col = 0; col < columnCount; col++)
+            {
+                var cellOrigin = new Point(batchOffsetX + col * cellSize, row * cellSize);
+                var brush = brushes[random.Next(brushes.Length)];
+                var pen = new Pen(brush, 0.5);
+                pen.Freeze();
+
+                switch ((col + row) % 5)
+                {
+                    case 0: //直线;
+                        drawObjects.Add(new Line
+                        {
+                            Start = new Point(cellOrigin.X + random.NextDouble() * cellSize, cellOrigin.Y + random.NextDouble() * cellSize),
+                            End = new Point(cellOrigin.X + random.NextDouble() * cellSize, cellOrigin.Y + random.NextDouble() * cellSize),
+                            Pen = pen
+                        });
+                        break;
+                    case 1: //矩形;
+                        drawObjects.Add(new Rectangle(new CADRect(
+                            new Point(cellOrigin.X + 0.5, cellOrigin.Y + 0.5),
+                            new Size(cellSize - 1, cellSize - 1)))
+                        {
+                            Pen = pen,
+                            Background = brush
+                        });
+                        break;
+                    case 2: //多边形;
+                        drawObjects.Add(new Polygon
+                        {
+                            Points = new[]
+                            {
+                                new Point(cellOrigin.X + 0.5, cellOrigin.Y + 0.5),
+                                new Point(cellOrigin.X + cellSize - 0.5, cellOrigin.Y + 0.5),
+                                new Point(cellOrigin.X + cellSize - 0.5, cellOrigin.Y + cellSize - 0.5),
+                                new Point(cellOrigin.X + 0.5, cellOrigin.Y + cellSize - 0.5)
+                            },
+                            Pen = pen,
+                            Brush = brush
+                        });
+                        break;
+                    case 3: //圆弧;
+                        drawObjects.Add(new Arc
+                        {
+                            Pen = pen,
+                            Center = new Point(cellOrigin.X + cellSize / 2, cellOrigin.Y + cellSize / 2),
+                            Radius = cellSize / 2 - 0.3,
+                            BeginAngle = 0,
+                            Angle = random.NextDouble() * Math.PI * 2
+                        });
+                        break;
+                    default: //文字;
+                        drawObjects.Add(new Text
+                        {
+                            Content = "Hi",
+                            Position = cellOrigin,
+                            FontSize = 5
+                        });
+                        break;
+                }
+            }
+        }
+
+        //批量添加,只触发一次图层重录;
+        _cadLayer.AddDrawObjects(drawObjects);
+        _batchIndex++;
+    }
 }

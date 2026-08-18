@@ -15,6 +15,7 @@
             <Button Click="AddPolygon_Click">Add Polygon</Button>
             <Button Click="AddArc_Click">Add Arc</Button>
             <Button Click="AddText_Click">Add Text</Button>
+            <Button Click="AddBatch_Click">Add Batch (200)</Button>
         </UniformGrid>
         <tidacad:CADControl x:Name="cadControl"/>
     </DockPanel>
