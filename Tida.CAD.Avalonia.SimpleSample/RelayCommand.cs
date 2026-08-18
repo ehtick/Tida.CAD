@@ -20,6 +20,14 @@ internal class RelayCommand : ICommand
     
     public event EventHandler? CanExecuteChanged;
 
+    /// <summary>
+    /// 通知命令绑定源刷新 <see cref="CanExecute"/> 状态;
+    /// </summary>
+    public void RaiseCanExecuteChanged()
+    {
+        CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public bool CanExecute(object? parameter)
     {
         if (_canExecute == null)

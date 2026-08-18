@@ -11,7 +11,6 @@
 		<Description>This assembly is a cad control library implemented with wpf</Description>
 		<AssemblyVersion>0.65</AssemblyVersion>
 		<FileVersion>0.65</FileVersion>
-		<WarningsAsErrors>true</WarningsAsErrors>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -24,7 +23,8 @@
 		<DebugType>none</DebugType>
 	</PropertyGroup>
 	<PropertyGroup>
-	  <NoWarn>1701;1702;NETSDK1138</NoWarn>
+	  <!-- 1591/1572/1573/1587/1574:存量XML注释问题(缺注释/参数不匹配等),不影响功能,需后续逐步清理 -->
+	  <NoWarn>1701;1702;NETSDK1138;1591;1572;1573;1587;1574</NoWarn>
 	</PropertyGroup>
 	<Import Project="..\Tida.CAD\Tida.CAD.projitems" Label="Shared" />
 

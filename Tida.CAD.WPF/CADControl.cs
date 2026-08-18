@@ -1053,9 +1053,9 @@ public partial class CADControl
     /// <summary>
     /// 所有内容图层;
     /// </summary>
-    public IEnumerable<CADLayer> Layers
+    public IEnumerable<CADLayer>? Layers
     {
-        get => (IEnumerable<CADLayer>)GetValue(LayersProperty);
+        get => (IEnumerable<CADLayer>?)GetValue(LayersProperty);
         set => SetValue(LayersProperty, value);
     }
 
@@ -1850,12 +1850,19 @@ public partial class CADControl
             if (rect != null)
             {
                 //遍历选中所有在框选范围中的可见绘制对象;
-                var selectedObjects = this.GetVisibleLayers().SelectMany(p => p.DrawObjects).Where(p => p.IsVisible).
+                var hitedDrawObjects = this.GetVisibleLayers().SelectMany(p => p.DrawObjects).Where(p => p.IsVisible).
                     Where(p => p.ObjectInRectangle(rect.Value, CADScreenConverter, _anyPointSelectForDragSelect)).ToArray();
 
-                foreach (var drawObject in selectedObjects)
+                //通知外部拖放选择事件,若取消则不选中;
+                var dragSelectArgs = new DragSelectEventArgs(mousePosition, rect.Value, hitedDrawObjects);
+                DragSelect?.Invoke(this, dragSelectArgs);
+
+                if (!dragSelectArgs.Cancel)
                 {
-                    drawObject.IsSelected = true;
+                    foreach (var drawObject in hitedDrawObjects)
+                    {
+                        drawObject.IsSelected = true;
+                    }
                 }
             }
 

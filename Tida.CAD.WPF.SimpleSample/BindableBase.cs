@@ -16,7 +16,7 @@ public abstract class BindableBase : INotifyPropertyChanged
     /// <summary>
     /// Occurs when a property value changes.
     /// </summary>
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
     /// Checks if a property already matches a desired value. Sets the property and
@@ -30,7 +30,7 @@ public abstract class BindableBase : INotifyPropertyChanged
     /// support CallerMemberName.</param>
     /// <returns>True if the value was changed, false if the existing value matched the
     /// desired value.</returns>
-    protected virtual bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+    protected virtual bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(storage, value)) return false;
 

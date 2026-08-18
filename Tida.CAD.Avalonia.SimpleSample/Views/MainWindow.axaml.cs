@@ -14,8 +14,11 @@ public partial class MainWindow : Window
         //使用反射获取所有测试命令;
         var types = Assembly.GetExecutingAssembly().GetTypes();
         var testCommandTypes = types.Where(type => type != typeof(ITestCommand) && typeof(ITestCommand).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface);
-        var testCommands = testCommandTypes.Select(commandType => Activator.CreateInstance(commandType) as ITestCommand).OrderBy(p => p.Order);
-        foreach (var testCommand in testCommands.OfType<ITestCommand>())
+        var testCommands = testCommandTypes
+            .Select(commandType => Activator.CreateInstance(commandType) as ITestCommand)
+            .OfType<ITestCommand>()
+            .OrderBy(p => p.Order);
+        foreach (var testCommand in testCommands)
         {
             var button = new Button
             {
