@@ -1,0 +1,21 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="ARM" />
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Avalonia/">
+    <Project Path="Tida.CAD.Avalonia.SimpleSample/Tida.CAD.Avalonia.SimpleSample.csproj" />
+    <Project Path="Tida.CAD.Avalonia/Tida.CAD.Avalonia.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Folder Name="/WPF/">
+    <Project Path="Tida.CAD.WPF.SimpleSample/Tida.CAD.WPF.SimpleSample.csproj" />
+    <Project Path="Tida.CAD.WPF/Tida.CAD.WPF.csproj" />
+  </Folder>
+  <Project Path="Tida.CAD/Tida.CAD.shproj" />
+</Solution>

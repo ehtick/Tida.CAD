@@ -274,7 +274,7 @@ dotnet build Tida.CAD.WPF.SimpleSample/Tida.CAD.WPF.SimpleSample.csproj
 dotnet build Tida.CAD.Avalonia/Tida.CAD.Avalonia.csproj
 
 # 整个解决方案
-dotnet build Tida.CAD.sln
+dotnet build Tida.CAD.slnx
 ```
 
 WPF 项目目标框架为 `net45;net46;netcoreapp3.1;net5.0-windows;net6.0-windows;net7.0-windows;net8.0-windows`；Avalonia 项目目标框架为 `net8.0`。
